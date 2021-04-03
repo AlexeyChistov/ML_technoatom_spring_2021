@@ -1,8 +1,4 @@
 import numpy as np
-from sklearn.datasets import load_breast_cancer
-from sklearn.metrics import classification_report
-from sklearn.model_selection import train_test_split
-from sklearn.naive_bayes import GaussianNB
 
 
 def tf_pn(y_true: np.ndarray, y_predict: np.ndarray):
@@ -20,53 +16,85 @@ def tf_pn(y_true: np.ndarray, y_predict: np.ndarray):
     return d
 
 
+def y_predict_conversion(percent, y_predict_):
+    """
+    Присваиваем элементам y_predict 1 и 0 в зависимости от порога вероятности
+    Параллельно проводим валидацию аргумента percent:
+        - если percent = None, то threshold = 0.5
+        - если percent в диапазоне от 1 до 100, то threshold = percent / 100
+        - если percent выходит из диапазона, выбрасываем Exception
+    :param percent:
+    :param y_predict_:
+    :return y_predict_: переделанный y_predict
+    """
+    if percent is None:
+        threshold = .5
+    elif (percent >= 1) and (percent <= 100):
+        threshold = percent / 100
+    else:
+        raise Exception("percent should be from 1 to 100 or None")
+    y_predict_[y_predict_ >= threshold] = 1
+    y_predict_[y_predict_ < threshold] = 0
+    return y_predict_
+
+
 def accuracy_score(y_true, y_predict, percent=None):
-    score = np.mean(y_predict == y_true)
-    print(type(y_true), type(y_predict))
-    return score
+    dict_score = dict()
+    y_predict_ = y_predict_conversion(percent, y_predict)
+    for _ in range(y_predict.shape[1]):
+        score = np.mean(y_predict_[:, _] == y_true)
+        dict_score[f"class_{_ + 1}"] = score
+    return dict_score
 
 
 def precision_score(y_true, y_predict, percent=None):
-    d = tf_pn(y_true, y_predict)
-    score = d['TP'] / (d['TP'] + d['FP'])
-    return score
+    dict_score = dict()
+    y_predict_ = y_predict_conversion(percent, y_predict)
+    for _ in range(y_predict.shape[1]):
+        d = tf_pn(y_true, y_predict_[:, _])
+        score = d['TP'] / (d['TP'] + d['FP'])
+        dict_score[f"class_{_ + 1}"] = score
+    return dict_score
 
 
 def recall_score(y_true, y_predict, percent=None):
-    d = tf_pn(y_true, y_predict)
-    score = d['TP'] / (d['TP'] + d['FN'])
-    return score
+    dict_score = dict()
+    y_predict_ = y_predict_conversion(percent, y_predict)
+    for _ in range(y_predict.shape[1]):
+        d = tf_pn(y_true, y_predict_[:, _])
+        score = d['TP'] / (d['TP'] + d['FN'])
+        dict_score[f"class_{_ + 1}"] = score
+    return dict_score
 
 
 def lift_score(y_true, y_predict, percent=None):
-    precision = precision_score(y_true, y_predict)
-    d = tf_pn(y_true, y_predict)
-    score = precision / (d['TP'] + d['FN']) * y_true.shape[0]
-    return score
+    dict_score = dict()
+    y_predict_ = y_predict_conversion(percent, y_predict)
+    for _ in range(y_predict.shape[1]):
+        d = tf_pn(y_true, y_predict_[:, _])
+        precision = d['TP'] / (d['TP'] + d['FP'])
+        score = precision / (d['TP'] + d['FN']) * y_predict.shape[0]
+        dict_score[f"class_{_ + 1}"] = score
+    return dict_score
 
 
 def f1_score(y_true, y_predict, percent=None):
-    precision = precision_score(y_true, y_predict)
-    recall = recall_score(y_true, y_predict)
-    score = 2 * precision * recall / (precision + recall)
-    return score
+    dict_score = dict()
+    y_predict_ = y_predict_conversion(percent, y_predict)
+    for _ in range(y_predict.shape[1]):
+        d = tf_pn(y_true, y_predict_[:, _])
+        precision = d['TP'] / (d['TP'] + d['FP'])
+        recall = d['TP'] / (d['TP'] + d['FN'])
+        score = 2 * precision * recall / (precision + recall)
+        dict_score[f"class_{_ + 1}"] = score
+    return dict_score
 
 
-random_state = 42
-X, y = load_breast_cancer(return_X_y=True, as_frame=True)
-X_train, X_test, y_train, y_test = \
-    train_test_split(X, y, test_size=0.4, random_state=23)
-compression_opts = dict(method='zip', archive_name='out.csv')
-X_train.to_csv('out.zip', index=False, compression=compression_opts)
-classifier = GaussianNB()
-classifier.fit(X_train, y_train)
-y_predict = classifier.predict(X_test)
-print(y_predict)
-y_true = y_test
-y_true = np.array(y_true)
-print(classification_report(y_true, y_predict))
-print('accuracy', accuracy_score(y_true, y_predict))
-print('precision_score', precision_score(y_true, y_predict))
-print('recall_score', recall_score(y_true, y_predict))
-print('lift_score', lift_score(y_true, y_predict))
-print('f1_score', f1_score(y_true, y_predict))
+# Отладочные данные
+# file = np.loadtxt('HW2_labels.txt',  delimiter=',')
+# y_predict, y_true = file[:, :2], file[:, -1]
+# print('accuracy', accuracy_score(y_true, y_predict))
+# print('precision_score', precision_score(y_true, y_predict))
+# print('recall_score', recall_score(y_true, y_predict))
+# print('lift_score', lift_score(y_true, y_predict))
+# print('f1_score', f1_score(y_true, y_predict))

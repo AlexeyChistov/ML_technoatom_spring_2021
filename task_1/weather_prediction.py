@@ -7,6 +7,12 @@ from sklearn.naive_bayes import BernoulliNB, GaussianNB
 from sklearn.neighbors import KNeighborsClassifier
 
 
+def time_delta(func, *args, **kwargs):
+    start_time = time.time()
+    func(*args, **kwargs)
+    end_time = time.time()
+    return end_time - start_time
+
 def split_categorical_and_numerical_columns():
     categorical_columns = []
     numerical_columns = []
@@ -72,22 +78,26 @@ classifier = BernoulliNB()
 classifier.fit(x_train, y_train)
 prediction = classifier.predict(x_test)
 print('BernoulliNB', classifier.score(x_test, y_test))
+print(time_delta(classifier.fit, x_train, y_train))
 print(classification_report(prediction, y_test))
 
 classifier = GaussianNB()
 classifier.fit(x_train, y_train)
 prediction = classifier.predict(x_test)
 print('GaussianNB', classifier.score(x_test, y_test))
+print(time_delta(classifier.fit, x_train, y_train))
 print(classification_report(prediction, y_test))
 
 classifier = LogisticRegression(penalty='l2', max_iter=100)
 classifier.fit(x_train, y_train)
 prediction = classifier.predict(x_test)
 print('LogisticRegression', classifier.score(x_test, y_test))
+print(time_delta(classifier.fit, x_train, y_train))
 print(classification_report(prediction, y_test))
 
 neigh = KNeighborsClassifier(n_neighbors=1)
 neigh.fit(x_train, y_train)
 prediction = neigh.predict(x_test)
 print('KNeighborsClassifier', np.mean(prediction == y_test))
+print(time_delta(neigh.fit, x_train, y_train))
 print(classification_report(prediction, y_test))
